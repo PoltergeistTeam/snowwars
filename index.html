@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SnowWars</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a1628; touch-action:none; font-family:system-ui,sans-serif; }
+  #c { display:block; width:100%; height:100%; }
+  .hidden { display:none !important; }
+  button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+
+  /* ===== MENU (по прототипу) ===== */
+  .screen {
+    position:fixed; inset:0; z-index:1000; pointer-events:auto;
+    background: linear-gradient(180deg, #0a1628 0%, #1a3a5c 50%, #2d5a8a 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#fff;
+  }
+  .game-title {
+    font-size:56px; font-weight:900; letter-spacing:6px; font-style:italic;
+    text-shadow: 0 0 30px rgba(120,200,255,.9), 0 4px 12px rgba(0,0,0,.6);
+    margin-bottom:60px;
+  }
+  .menu-btn {
+    width:240px; padding:16px 24px; margin:10px;
+    background:rgba(255,255,255,.1); border:2px solid rgba(120,200,255,.4);
+    border-radius:14px; font-size:22px; font-weight:800; letter-spacing:3px;
+    text-align:center; transition:all .15s;
+  }
+  .menu-btn:active { background:rgba(120,200,255,.3); transform:scale(.97); }
+  .back-btn {
+    position:absolute; top:16px; left:16px; padding:10px 18px;
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3);
+    border-radius:10px; font-size:16px;
+  }
+  .screen h2 { font-size:32px; font-weight:800; letter-spacing:3px; margin-bottom:30px; }
+
+  /* Профиль */
+  #profileScreen .avatar-big {
+    width:100px; height:100px; border-radius:50%;
+    background:rgba(255,255,255,.15); border:3px solid rgba(120,200,255,.5);
+    display:flex; align-items:center; justify-content:center; font-size:50px;
+    margin-bottom:20px; cursor:pointer;
+  }
+  .avatar-row { display:flex; gap:12px; margin:15px 0 25px; flex-wrap:wrap; justify-content:center; }
+  .avatar-opt {
+    width:52px; height:52px; border-radius:50%; font-size:26px;
+    background:rgba(255,255,255,.1); border:2px solid transparent;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .avatar-opt.sel { border-color:#78c8ff; background:rgba(120,200,255,.25); }
+  #nickInput {
+    width:220px; padding:12px 16px; font-size:18px; text-align:center;
+    background:rgba(255,255,255,.12); border:2px solid rgba(120,200,255,.4);
+    border-radius:12px; color:#fff; outline:none; margin-bottom:16px;
+  }
+  #nickInput::placeholder { color:rgba(255,255,255,.4); }
+  #nickRequiredOverlay{position:fixed;inset:0;z-index:2000;background:rgba(4,12,24,.72);display:flex;align-items:center;justify-content:center;padding:20px}
+  #nickRequiredBox{width:min(390px,92vw);padding:26px 22px;border-radius:18px;background:linear-gradient(180deg,#183b5c,#10263e);border:2px solid rgba(120,200,255,.5);box-shadow:0 12px 40px rgba(0,0,0,.45);text-align:center;color:#fff}
+  #nickRequiredBox h3{font-size:23px;margin-bottom:10px;letter-spacing:1px}
+  #nickRequiredBox p{font-size:15px;color:#bfe7ff;line-height:1.45;margin-bottom:18px}
+  #nickRequiredBox button{width:220px;padding:13px 18px;border-radius:12px;background:rgba(120,200,255,.22);border:2px solid rgba(120,200,255,.5);font-size:17px;font-weight:800}
+
+
+  /* Настройки */
+  .setting-item {
+    width:min(430px,90vw); padding:13px 16px; margin:6px;
+    background:rgba(255,255,255,.08); border:2px solid rgba(120,200,255,.3);
+    border-radius:12px; font-size:15px; font-weight:600;
+    display:flex; justify-content:space-between; align-items:center; gap:14px;
+  }
+  .setting-control{display:flex;align-items:center;gap:9px;min-width:180px;justify-content:flex-end}
+  .setting-control input[type=range]{width:120px;accent-color:#78c8ff}
+  .setting-control select,.setting-control button{padding:7px 9px;border-radius:8px;border:1px solid rgba(120,200,255,.4);background:rgba(8,18,32,.72);color:#fff}
+  .setting-value{min-width:42px;text-align:right;color:#aee5ff;font-size:13px}
+  .setting-note{width:min(430px,90vw);font-size:11px;color:#9fc4df;text-align:center;margin:4px 0 10px}
+
+
+  /* Режимы */
+  .mode-card {
+    width:300px; padding:22px; margin:10px;
+    background:rgba(255,255,255,.08); border:2px solid rgba(120,200,255,.3);
+    border-radius:16px; text-align:center; transition:all .15s;
+  }
+  .mode-card:active { background:rgba(120,200,255,.2); transform:scale(.98); }
+  .mode-card .icon { font-size:42px; margin-bottom:8px; }
+  .mode-card .name { font-size:20px; font-weight:700; }
+  .mode-card .desc { font-size:13px; color:#a8c8e8; margin-top:4px; }
+  .mode-card.locked { opacity:.35; }
+
+  /* ===== HUD ===== */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:24px; height:24px; }
+  #crosshair::before, #crosshair::after { content:''; position:absolute; background:rgba(255,255,255,.9); box-shadow:0 0 4px rgba(0,0,0,.8); }
+  #crosshair::before { left:11px; top:0; width:2px; height:24px; }
+  #crosshair::after { left:0; top:11px; width:24px; height:2px; }
+  #score { position:absolute; top:12px; left:50%; transform:translateX(-50%); color:#fff; font-size:20px; font-weight:700; text-shadow:0 2px 6px rgba(0,0,0,.6); }
+  #balls { position:absolute; top:38px; left:50%; transform:translateX(-50%); color:#fff; font-size:14px; text-shadow:0 2px 4px rgba(0,0,0,.6); }
+  #teamScore { position:absolute; top:12px; left:12px; color:#fff; font-size:14px; text-shadow:0 2px 4px rgba(0,0,0,.6); }
+  #msg { position:absolute; top:45%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:24px; font-weight:800; text-shadow:0 2px 8px #000; opacity:0; transition:opacity .3s; }
+  #craft { position:absolute; bottom:150px; left:50%; transform:translateX(-50%); color:#ffeaa7; font-size:16px; font-weight:600; text-shadow:0 2px 4px #000; opacity:0; transition:opacity .2s; }
+  #joy { position:absolute; bottom:24px; left:24px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.3); pointer-events:auto; }
+  #stick { position:absolute; left:35px; top:35px; width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.55); }
+  #throwBtn { position:absolute; bottom:34px; right:24px; width:90px; height:90px; border-radius:50%; background:rgba(120,200,255,.35); border:2px solid rgba(255,255,255,.5); color:#fff; font-size:34px; display:flex; align-items:center; justify-content:center; pointer-events:auto; user-select:none; }
+  #throwBtn:active { background:rgba(120,200,255,.6); }
+  #craftBtn { position:absolute; bottom:140px; right:34px; width:70px; height:70px; border-radius:50%; background:rgba(255,220,120,.35); border:2px solid rgba(255,255,255,.5); color:#fff; font-size:28px; display:flex; align-items:center; justify-content:center; pointer-events:auto; user-select:none; }
+  #craftBtn:active { background:rgba(255,220,120,.6); }
+  #roomBadge{position:absolute;top:12px;right:60px;z-index:25;max-width:170px;padding:9px 12px;border-radius:10px;background:rgba(20,35,55,.88);border:1px solid rgba(120,200,255,.55);color:#fff;font-size:13px;font-weight:700;text-align:center;text-shadow:0 2px 4px #000;display:none;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+  #exitBtn { position:absolute; top:12px; right:12px; width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center; pointer-events:auto; }
+  #pauseMenu{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,10,20,.55);backdrop-filter:blur(4px);pointer-events:auto;z-index:40;}
+  #pausePanel{width:min(340px,86vw);padding:22px 18px 18px;border-radius:18px;background:rgba(9,22,38,.96);border:1px solid rgba(120,200,255,.45);box-shadow:0 18px 50px rgba(0,0,0,.5);text-align:center;color:#fff;}
+  #pausePanel h2{margin:0 0 8px;font-size:24px;}
+  #pauseRoomCode{font-size:13px;color:#bfe7ff;margin-bottom:16px;padding:8px 10px;border-radius:9px;background:rgba(120,200,255,.1);border:1px solid rgba(120,200,255,.25);}
+  .pause-btn{display:block;width:100%;margin:9px 0;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;font-size:17px;font-weight:700;cursor:pointer;}
+  .pause-btn:active{transform:scale(.98);background:rgba(120,200,255,.2);}
+  .pause-btn.danger{background:rgba(255,90,90,.13);border-color:rgba(255,120,120,.35);}
+  #jumpBtn{position:absolute;bottom:225px;right:24px;width:70px;height:70px;border-radius:50%;background:rgba(150,220,255,.3);border:2px solid rgba(255,255,255,.5);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none}
+  /* Адаптация кода комнаты для телефонов */
+  @media (max-width: 600px){
+    #roomBadge{top:58px;right:10px;max-width:calc(100vw - 20px);width:auto;padding:7px 10px;font-size:11px;border-radius:9px;}
+    #exitBtn{top:10px;right:10px;width:42px;height:42px;}
+    #pausePanel{width:min(330px,88vw);padding:20px 15px 16px;}
+    #pauseRoomCode{font-size:12px;padding:8px;}
+  }
+  @media (max-width: 380px){
+    #roomBadge{top:56px;right:8px;max-width:calc(100vw - 16px);font-size:10px;padding:6px 8px;}
+    #exitBtn{right:8px;}
+  }
+  #killFeed{position:absolute;top:62px;right:14px;width:min(360px,70vw);display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .kill-line{padding:7px 10px;border-radius:9px;background:rgba(8,18,32,.72);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 3px #000;animation:killIn .18s ease-out}
+  .kill-head{color:#ffe08a}
+  @keyframes killIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+  #chatBox{position:absolute;left:14px;top:62px;width:min(360px,68vw);pointer-events:auto;z-index:12}
+  #chatLog{display:flex;flex-direction:column;gap:4px;max-height:170px;overflow:hidden;margin-bottom:7px}
+  .chat-line{padding:5px 8px;border-radius:7px;background:rgba(8,18,32,.64);color:#fff;font-size:12px;text-shadow:0 1px 3px #000}
+  .chat-system{color:#aee5ff}
+  #chatInput{width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(120,200,255,.4);background:rgba(8,18,32,.72);color:#fff;outline:none;font-size:13px}
+  #tabBoard{position:absolute;inset:8% 50%;transform:translateX(-50%);width:min(430px,88vw);height:max-content;max-height:78vh;padding:18px;border-radius:16px;background:rgba(7,17,30,.92);border:2px solid rgba(120,200,255,.45);box-shadow:0 14px 40px rgba(0,0,0,.45);color:#fff}
+  #tabBoard h3{font-size:20px;margin-bottom:12px;text-align:center}
+  #tabPlayers{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+  .tab-player{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.07);font-size:14px}
+  .tab-player.me{border:1px solid rgba(120,200,255,.45)}
+
+  .mode-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:720px}
+  .mode-card.big{width:260px;cursor:pointer}
+  .available-note{font-size:12px;color:#9fc4df;margin:2px 0 18px;text-align:center}
+  .info-box{width:min(650px,88vw);background:rgba(255,255,255,.08);border:1px solid rgba(120,200,255,.3);border-radius:16px;padding:18px 22px;text-align:left;line-height:1.55;margin-bottom:18px}
+  .info-box b{color:#fff}.check{color:#bfe7ff}
+  .map-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+  .map-card{width:270px;min-height:150px;padding:18px;border-radius:16px;background:rgba(255,255,255,.08);border:2px solid rgba(120,200,255,.3);cursor:pointer;text-align:left}
+  .map-card:active{transform:scale(.98);background:rgba(120,200,255,.18)}
+  .map-card .map-icon{font-size:42px}.map-card .map-name{font-size:21px;font-weight:800;margin-top:6px}.map-card .map-desc{font-size:13px;color:#a8c8e8;margin-top:5px}
+  .difficulty-wrap{width:min(560px,90vw);margin:0 auto 20px;text-align:center}
+  .difficulty-pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:14px;background:rgba(255,255,255,.10);border:2px solid rgba(120,200,255,.4);font-size:17px;font-weight:800;cursor:pointer;min-width:250px}
+  .difficulty-options{display:none;flex-direction:column;gap:8px;margin-top:10px;align-items:stretch}
+  .difficulty-options.open{display:flex}
+  .difficulty-opt{padding:11px 16px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left;cursor:pointer}
+  .difficulty-opt.sel{border-color:#78c8ff;background:rgba(120,200,255,.18)}
+  .difficulty-opt b{display:block;font-size:16px}.difficulty-opt span{font-size:12px;color:#a8c8e8}
+  .team-select{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:10px 0 20px}
+  .team-card{width:210px;padding:18px;border-radius:16px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);cursor:pointer;text-align:center}
+  .team-card.sel{border-color:#78c8ff;background:rgba(120,200,255,.18)}
+  .team-card .team-icon{font-size:40px}.team-card b{display:block;font-size:20px;margin-top:5px}.team-card span{font-size:12px;color:#a8c8e8}
+
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- ГЛАВНОЕ МЕНЮ -->
+<div class="screen" id="mainMenu">
+  <div class="game-title">SnowWars</div>
+  <button class="menu-btn" id="btnPlay">ИГРАТЬ</button>
+  <button class="menu-btn" id="btnSettings">НАСТРОЙКИ</button>
+  <button class="menu-btn" id="btnProfile">ПРОФИЛЬ</button>
+</div>
+
+<!-- НАСТРОЙКИ -->
+<div class="screen hidden" id="settingsScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Настройки</h2>
+  <div class="setting-item"><span>🎯 Чувствительность камеры</span><div class="setting-control"><input id="sensRange" type="range" min="1" max="10" value="5"><span id="sensValue" class="setting-value">50%</span></div></div>
+  <div class="setting-item"><span>🔄 Инверсия Y</span><div class="setting-control"><button id="invertYBtn">ВЫКЛ</button></div></div>
+  <div class="setting-item"><span>🎯 Показывать прицел</span><div class="setting-control"><button id="crosshairBtn">ВКЛ</button></div></div>
+  <div class="setting-item"><span>💬 Показывать чат</span><div class="setting-control"><button id="chatBtn">ВКЛ</button></div></div>
+  <div class="setting-item"><span>🎯 Показывать Kill Feed</span><div class="setting-control"><button id="killFeedBtn">ВКЛ</button></div></div>
+  <div class="setting-item"><span>📱 Размер управления</span><div class="setting-control"><select id="uiScaleSelect"><option value="0.85">Маленький</option><option value="1" selected>Средний</option><option value="1.15">Большой</option></select></div></div>
+  <div class="setting-item"><span>🎨 Графика</span><div class="setting-control"><select id="qualitySelect"><option value="0.75">Низкая</option><option value="1" selected>Средняя</option><option value="1.5">Высокая</option></select></div></div>
+  <div class="setting-note">Настройки сохраняются на этом устройстве.</div>
+  <button class="menu-btn" id="resetSettings" style="width:230px;font-size:16px">СБРОСИТЬ НАСТРОЙКИ</button>
+</div>
+
+<!-- ПРОФИЛЬ -->
+<div class="screen hidden" id="profileScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Профиль</h2>
+  <div class="avatar-big" id="avatarBig">😎</div>
+  <div class="avatar-row" id="avatarRow">
+    <button class="avatar-opt" data-a="😎">😎</button>
+    <button class="avatar-opt" data-a="🥶">🥶</button>
+    <button class="avatar-opt" data-a="😈">😈</button>
+    <button class="avatar-opt" data-a="🤖">🤖</button>
+    <button class="avatar-opt" data-a="👻">👻</button>
+    <button class="avatar-opt" data-a="🐧">🐧</button>
+  </div>
+  <input id="nickInput" maxlength="12" placeholder="Твой ник">
+  <button class="menu-btn" id="saveProfile" style="width:200px;font-size:18px;">СОХРАНИТЬ</button>
+</div>
+
+<!-- ВЫБОР РЕЖИМА -->
+<div class="screen hidden" id="modeScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Как играем?</h2>
+  <div class="mode-row">
+    <div class="mode-card big" id="modeOnline">
+      <div class="icon">🌐</div><div class="name">ОНЛАЙН</div>
+      <div class="desc">Играть с другими игроками</div>
+    </div>
+    <div class="mode-card big" id="modeOffline">
+      <div class="icon">📱</div><div class="name">ОФЛАЙН</div>
+      <div class="desc">Выбор режима против NPC</div>
+    </div>
+  </div>
+  <div class="available-note">Режимы доступные сейчас: офлайн — готов • онлайн — подготовка комнаты</div>
+</div>
+
+<!-- ВЫБОР ОФЛАЙН-РЕЖИМА -->
+<div class="screen hidden" id="offlineModeScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Офлайн</h2>
+  <div class="mode-row">
+    <div class="mode-card big" id="offlineNormal">
+      <div class="icon">❄️</div><div class="name">КОМАНДНАЯ БИТВА</div>
+      <div class="desc">Обычные боты • выбор сложности</div>
+    </div>
+    <div class="mode-card big" id="offlineOneVsAll">
+      <div class="icon">⚔️</div><div class="name">ВСЕ ПРОТИВ ОДНОГО</div>
+      <div class="desc">5 ботов против тебя • 6 раундов</div>
+    </div>
+  </div>
+</div>
+
+<!-- ЧТО НУЖНО ДЛЯ МУЛЬТИПЛЕЕРА -->
+<div class="screen hidden" id="onlineScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Онлайн</h2>
+  <div class="info-box">
+    <b>Настоящий мультиплеер:</b><br>Создай комнату или введи код друга. Игроки и их действия будут синхронизироваться через WebSocket-сервер.
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="menu-btn" id="createRoom" style="width:220px">СОЗДАТЬ КОМНАТУ</button>
+    <button class="menu-btn" id="joinRoom" style="width:220px">ВОЙТИ ПО КОДУ</button>
+  </div>
+  <input id="serverIpInput" maxlength="64" placeholder="IP СЕРВЕРА, например 192.168.1.105" style="width:280px;padding:12px 16px;font-size:16px;text-align:center;background:rgba(255,255,255,.12);border:2px solid rgba(120,200,255,.4);border-radius:12px;color:#fff;outline:none;margin:8px">
+  <div style="font-size:12px;color:#bfe7ff;max-width:340px;margin:0 auto 4px;text-align:center">На ПК оставь пустым. На телефоне введи локальный IP компьютера. Порт: 8080.</div>
+  <input id="roomCodeInput" maxlength="6" placeholder="КОД КОМНАТЫ" style="width:220px;padding:12px 16px;font-size:18px;text-align:center;background:rgba(255,255,255,.12);border:2px solid rgba(120,200,255,.4);border-radius:12px;color:#fff;outline:none;margin:8px">
+  <div id="onlineStatus" style="font-size:13px;color:#bfe7ff;min-height:20px;text-align:center"></div>
+</div>
+
+<!-- ОБЯЗАТЕЛЬНЫЙ НИК ДЛЯ ОНЛАЙНА -->
+<div id="nickRequiredOverlay" class="hidden">
+  <div id="nickRequiredBox">
+    <h3>Сначала напиши ник 👤</h3>
+    <p>Для игры онлайн нужен ник.<br>Открой вкладку <b>«Профиль»</b>, напиши свой ник и сохрани его.</p>
+    <button id="nickRequiredProfile">ОТКРЫТЬ ПРОФИЛЬ</button>
+  </div>
+</div>
+
+<!-- ВЫБОР КОМАНДЫ -->
+<div class="screen hidden" id="teamScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Выбери команду</h2>
+  <div class="team-select">
+    <div class="team-card sel" data-team="blue"><div class="team-icon">🔵</div><b>Синие</b><span>Твой спавн справа</span></div>
+    <div class="team-card" data-team="red"><div class="team-icon">🔴</div><b>Красные</b><span>Твой спавн слева</span></div>
+  </div>
+  <button class="menu-btn" id="teamContinue" style="width:220px">ДАЛЬШЕ →</button>
+</div>
+
+<!-- ВЫБОР КАРТЫ -->
+<div class="screen hidden" id="mapScreen">
+  <button class="back-btn" data-back>← Назад</button>
+  <h2>Выбор карты</h2>
+  <div class="difficulty-wrap" id="difficultyWrap">
+    <div class="difficulty-pill" id="difficultyToggle">🤖 Сложность: <span id="difficultyName">Безобидный</span> ▾</div>
+    <div class="difficulty-options" id="difficultyOptions">
+      <div class="difficulty-opt sel" data-diff="harmless"><b>🧊 Безобидный</b><span>NPC стоят на месте и не кидают снежки.</span></div>
+      <div class="difficulty-opt" data-diff="normal"><b>❄️ Обычная</b><span>NPC ходят, соревнуются и кидают снежки по всем вокруг.</span></div>
+    </div>
+  </div>
+  <div class="map-row">
+    <div class="map-card" id="mapSnow">
+      <div class="map-icon">❄️</div><div class="map-name">Снежная долина</div>
+      <div class="map-desc">Открытая карта, деревья, камни и две башни.</div>
+    </div>
+    <div class="map-card" id="mapFort">
+      <div class="map-icon">🏰</div><div class="map-name">Ледяной форт</div>
+      <div class="map-desc">Карта для будущего режима с большим количеством укрытий.</div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+  <div id="score">❄ 0</div>
+  <div id="balls">Снежки: 3</div>
+  <div id="teamScore">🔵 0 : 0 🔴</div>
+  <div id="msg"></div>
+  <div id="craft"></div>
+  <div id="joy"><div id="stick"></div></div>
+  <div id="throwBtn">❄</div>
+  <div id="craftBtn">🧊</div>
+  <div id="jumpBtn">↑</div><div id="roomBadge" style="display:none"></div><div id="exitBtn">✕</div>
+  <div id="pauseMenu" class="hidden">
+    <div id="pausePanel">
+      <h2>Пауза</h2>
+      <div id="pauseRoomCode">КОД КОМНАТЫ: —</div>
+      <button class="pause-btn" id="pauseContinue">▶ Продолжить</button>
+      <button class="pause-btn" id="pauseSettings">⚙ Настройки</button>
+      <button class="pause-btn danger" id="pauseExit">🚪 Выйти</button>
+    </div>
+  </div>
+  <div id="killFeed"></div>
+  <div id="chatBox" class="hidden"><div id="chatLog"></div><input id="chatInput" maxlength="80" placeholder="Сообщение... (Enter)"></div>
+  <div id="tabBoard" class="hidden"><h3>ИГРОКИ</h3><div id="tabPlayers"></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script>
+// ============================================================
+// SnowWars
+// ============================================================
+// Must exist before the physics world is initialized.
+var staticWorldBodies = [];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, .1, 200);
+
+scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x88aacc, .85));
+const sun = new THREE.DirectionalLight(0xffffff, .9);
+sun.position.set(15,25,10); sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-40; sun.shadow.camera.right=40;
+sun.shadow.camera.top=40; sun.shadow.camera.bottom=-40;
+scene.add(sun);
+
+const world = new CANNON.World();
+world.gravity.set(0,-20,0);
+world.broadphase = new CANNON.SAPBroadphase(world);
+world.defaultContactMaterial.friction = .05;
+
+const groundBody = new CANNON.Body({mass:0, shape:new CANNON.Plane()});
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
+world.addBody(groundBody); staticWorldBodies.push(groundBody);
+
+const MAP_RADIUS=50;
+const groundMesh = new THREE.Mesh(new THREE.CircleGeometry(MAP_RADIUS,64), new THREE.MeshStandardMaterial({color:0xf0f6ff, roughness:.95}));
+groundMesh.rotation.x = -Math.PI/2; groundMesh.receiveShadow = true;
+scene.add(groundMesh);
+
+// Видимая граница там, где заканчивается снег, и физический забор,
+// чтобы игрок не мог уйти за пределы белой карты.
+const edgeMat=new THREE.MeshStandardMaterial({color:0xdbeaf4,roughness:.95});
+const edge=new THREE.Mesh(new THREE.TorusGeometry(MAP_RADIUS-.65,.38,8,128),edgeMat);
+edge.rotation.x=Math.PI/2; edge.position.y=.12; edge.receiveShadow=true; scene.add(edge);
+const edgeCount=32;
+for(let i=0;i<edgeCount;i++){
+  const a=i/edgeCount*Math.PI*2;
+  const r=MAP_RADIUS-.65;
+  const wall=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.5,2*Math.PI*r/edgeCount+.25),edgeMat);
+  wall.position.set(Math.cos(a)*r,.75,Math.sin(a)*r);
+  wall.rotation.y=-a;
+  wall.castShadow=true; wall.receiveShadow=true; scene.add(wall);
+
+  const wb=new CANNON.Body({mass:0});
+  wb.addShape(new CANNON.Box(new CANNON.Vec3(.5,.75,(2*Math.PI*r/edgeCount+.25)/2)));
+  wb.position.set(Math.cos(a)*r,.75,Math.sin(a)*r);
+  wb.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),-a);
+  world.addBody(wb); staticWorldBodies.push(wb);
+}
+
+// Trees & rocks
+for(let i=0;i<18;i++){
+  const a=Math.random()*Math.PI*2, r=10+Math.random()*30;
+  const x=Math.cos(a)*r, z=Math.sin(a)*r;
+  if(Math.random()<.7){
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.25,.35,2,8), new THREE.MeshStandardMaterial({color:0x5a3a22}));
+    trunk.position.set(x,1,z); trunk.castShadow=true; scene.add(trunk);
+    const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.3,2.8,8), new THREE.MeshStandardMaterial({color:0x1d5c3a}));
+    leaves.position.set(x,3,z); leaves.castShadow=true; scene.add(leaves);
+    const b=new CANNON.Body({mass:0, shape:new CANNON.Cylinder(.35,.35,2,8)});
+    b.position.set(x,1,z); world.addBody(b); staticWorldBodies.push(b);
+  } else {
+    const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.8,0), new THREE.MeshStandardMaterial({color:0x8a9aa8, roughness:.9}));
+    rock.position.set(x,.5,z); rock.castShadow=true; scene.add(rock);
+    const b=new CANNON.Body({mass:0, shape:new CANNON.Sphere(.8)});
+    b.position.set(x,.5,z); world.addBody(b); staticWorldBodies.push(b);
+  }
+}
+
+// Snow piles
+const piles=[];
+for(let i=0;i<10;i++){
+  const a=Math.random()*Math.PI*2, r=5+Math.random()*25;
+  const x=Math.cos(a)*r, z=Math.sin(a)*r;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.7,12,8), new THREE.MeshStandardMaterial({color:0xffffff, roughness:.6}));
+  m.scale.y=.45; m.position.set(x,.32,z); m.castShadow=true; scene.add(m);
+  piles.push({m,x,z,active:true,respawn:0});
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+const player={
+  body:new CANNON.Body({mass:70, shape:new CANNON.Sphere(.45), position:new CANNON.Vec3(0,.5,0), fixedRotation:true, linearDamping:.85}),
+  yaw:0, pitch:0, speed:5.5, balls:3, maxBalls:8, cooldown:0, crafting:0, craftTime:1.2, jumpSpeed:8.5, grounded:false
+};
+world.addBody(player.body);
+
+// Hand
+const handGroup=new THREE.Group();
+camera.add(handGroup); scene.add(camera);
+const armMat=new THREE.MeshStandardMaterial({color:0xffd5b5, roughness:.7});
+const sleeveMat=new THREE.MeshStandardMaterial({color:0x3a6ea5, roughness:.8});
+const arm=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.35,8), armMat);
+arm.rotation.x=Math.PI/2.3; arm.position.set(.25,-.22,-.35); handGroup.add(arm);
+const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.08,.09,.2,8), sleeveMat);
+sleeve.rotation.x=Math.PI/2.3; sleeve.position.set(.28,-.28,-.25); handGroup.add(sleeve);
+const fist=new THREE.Mesh(new THREE.SphereGeometry(.09,10,10), armMat);
+fist.position.set(.22,-.18,-.5); fist.scale.set(1,.8,1.1); handGroup.add(fist);
+const handBall=new THREE.Mesh(new THREE.SphereGeometry(.11,12,12), new THREE.MeshStandardMaterial({color:0xffffff, roughness:.5}));
+handBall.position.set(.22,-.16,-.52); handGroup.add(handBall);
+
+// ============================================================
+// PLAYER AVATAR — скрытая модель и анимации для будущего мультиплеера.
+// В одиночной игре она не показывается: камера всегда от первого лица.
+function createAvatar(){
+  const root=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.5,.72,.3),new THREE.MeshStandardMaterial({color:0x3a6ea5,roughness:.8}));
+  body.position.y=1.1; root.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.34,.34,.30),new THREE.MeshStandardMaterial({color:0xffd5b5,roughness:.7}));
+  head.position.y=1.55; root.add(head);
+  const legMat=new THREE.MeshStandardMaterial({color:0x26384a,roughness:.8});
+  const armMat2=new THREE.MeshStandardMaterial({color:0x3a6ea5,roughness:.8});
+  const legL=new THREE.Group(), legR=new THREE.Group(), armL=new THREE.Group(), armR=new THREE.Group();
+  legL.position.set(-.15,.76,0); legR.position.set(.15,.76,0);
+  armL.position.set(-.38,1.42,0); armR.position.set(.38,1.42,0);
+  const lm=new THREE.Mesh(new THREE.BoxGeometry(.19,.72,.19),legMat); lm.position.y=-.36;
+  const rm=lm.clone(); const la=new THREE.Mesh(new THREE.BoxGeometry(.17,.60,.17),armMat2); la.position.y=-.30;
+  const ra=la.clone();
+  legL.add(lm); legR.add(rm); armL.add(la); armR.add(ra);
+  root.add(legL,legR,armL,armR);
+  root.userData={legL,legR,armL,armR,body,head};
+  root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return root;
+}
+const playerAvatar=createAvatar();
+scene.add(playerAvatar); playerAvatar.visible=false;
+let playerAnimTime=0, throwAnim=0;
+let playerDead=false, playerDeathTimer=0, playerRagdoll=null;
+function updateAvatarAnimation(root,moving,t,throwProgress=0){
+  if(!root||!root.userData) return;
+  const u=root.userData;
+  const stride=moving?Math.sin(t)*.48:0;
+  const armSwing=moving?Math.sin(t+.15)*.34:0;
+  u.legL.rotation.x=stride; u.legR.rotation.x=-stride;
+  u.armL.rotation.x=-armSwing; u.armR.rotation.x=armSwing;
+  const bob=moving?Math.abs(Math.sin(t*2))*.035:0;
+  u.body.position.y=1.1+bob; u.head.position.y=1.55+bob*.7;
+  if(throwProgress>0){
+    const s=Math.sin(throwProgress*Math.PI);
+    u.armR.rotation.x=-1.25*s+armSwing; u.armR.rotation.z=-.28*s;
+  }else{ u.armR.rotation.z=0; }
+}
+
+// ============================================================
+// NPCs — новая простая система RAGDOLL
+// ============================================================
+const npcs=[];
+const ragdollMat=new CANNON.Material('npcRagdoll');
+const snowballMat=new CANNON.Material('snowball');
+
+function buildSharedRagdoll(origin, velocity, team='blue'){
+  const root=createAvatar();
+  root.visible=true;
+  root.position.set(0,0,0);
+  root.rotation.set(0,0,0);
+  scene.add(root);
+
+  const u=root.userData;
+  const parts=[u.head,u.body,u.armL.children[0],u.armR.children[0],u.legL.children[0],u.legR.children[0]];
+  const color=team==='red'?0xe74c3c:0x3498db;
+  const teamParts=[u.body,u.armL.children[0],u.armR.children[0],u.legL.children[0],u.legR.children[0]];
+  for(const m of teamParts){
+    m.material=m.material.clone();
+    m.material.color.setHex(color);
+  }
+
+  // Отцепляем конечности от групп анимации. После этого все 6 частей
+  // живут в одном root и используют мировые координаты без двойного смещения.
+  for(const m of [u.armL.children[0],u.armR.children[0],u.legL.children[0],u.legR.children[0]]) root.attach(m);
+  root.updateMatrixWorld(true);
+
+  const localOffsets=[
+    new THREE.Vector3(0,1.55,0),
+    new THREE.Vector3(0,1.10,0),
+    new THREE.Vector3(-.38,1.12,0),
+    new THREE.Vector3(.38,1.12,0),
+    new THREE.Vector3(-.15,.40,0),
+    new THREE.Vector3(.15,.40,0)
+  ];
+  for(let i=0;i<parts.length;i++){
+    parts[i].position.copy(localOffsets[i]).add(origin);
+    parts[i].rotation.set(0,0,0);
+    parts[i].quaternion.set(0,0,0,1);
+  }
+  root.updateMatrixWorld(true);
+
+  const masses=[2,8,1.2,1.2,3,3];
+  const bodies=[];
+  for(let i=0;i<parts.length;i++){
+    const mesh=parts[i], g=mesh.geometry;
+    const b=new CANNON.Body({mass:masses[i],material:ragdollMat,linearDamping:.38,angularDamping:.55});
+    b.addShape(new CANNON.Box(new CANNON.Vec3(g.parameters.width/2,g.parameters.height/2,g.parameters.depth/2)));
+    b.position.set(mesh.position.x,mesh.position.y,mesh.position.z);
+    world.addBody(b); bodies.push(b);
+  }
+
+  const constraints=[];
+  const joint=(a,b,pa,pb)=>{
+    const c=new CANNON.PointToPointConstraint(a,new CANNON.Vec3(...pa),b,new CANNON.Vec3(...pb));
+    world.addConstraint(c); constraints.push(c);
+  };
+  joint(bodies[0],bodies[1],[0,-.17,0],[0,.36,0]);
+  joint(bodies[2],bodies[1],[0,.22,0],[-.24,.25,0]);
+  joint(bodies[3],bodies[1],[0,.22,0],[.24,.25,0]);
+  joint(bodies[4],bodies[1],[0,.30,0],[-.14,-.32,0]);
+  joint(bodies[5],bodies[1],[0,.30,0],[.14,-.32,0]);
+
+  const v=velocity||new CANNON.Vec3(0,0,-1);
+  for(const b of bodies){
+    b.velocity.set(v.x*.32,Math.max(2.8,Number(v.y)||0),v.z*.32);
+    b.angularVelocity.set((Math.random()-.5)*2.4,(Math.random()-.5)*2.4,(Math.random()-.5)*2.4);
+    b.wakeUp();
+  }
+  return {root,bodies,constraints,parts,timer:0};
+}
+
+function createPlayerRagdoll(velocity){
+  const origin=new THREE.Vector3(player.body.position.x,Math.max(player.body.position.y,.5),player.body.position.z);
+  return buildSharedRagdoll(origin,velocity,playerTeam);
+}
+
+function removePlayerRagdoll(){
+  if(!playerRagdoll) return;
+  for(const c of playerRagdoll.constraints) world.removeConstraint(c);
+  for(const b of playerRagdoll.bodies) world.removeBody(b);
+  scene.remove(playerRagdoll.root);
+  playerRagdoll=null;
+}
+
+function killPlayer(hitVelocity){
+  if(playerDead) return;
+  playerDead=true; playerDeathTimer=5;
+  player.body.velocity.set(0,0,0);
+  player.body.position.y=Math.max(player.body.position.y,.5);
+  player.body.type=CANNON.Body.KINEMATIC;
+  player.body.collisionResponse=false;
+  playerRagdoll=createPlayerRagdoll(hitVelocity);
+  if(gameMode==='online') sendNet({type:'state',x:player.body.position.x,y:player.body.position.y,z:player.body.position.z,yaw:player.yaw,pitch:player.pitch,dead:true});
+  if(specialMode==='oneVsAll'){
+    finishOneVsAllRound();
+    showMsg('Тебя сбили! Регенерация после раунда ❄');
+  }else{
+    showMsg('Тебя сбили! Возвращение через 5 сек ❄');
+  }
+}
+
+function respawnPlayer(){
+  removePlayerRagdoll();
+  player.body.type=CANNON.Body.DYNAMIC;
+  player.body.collisionResponse=true;
+  const rs=SPAWNS[playerTeam]||SPAWNS.blue;
+  player.body.position.set(rs.x,.5,rs.z);
+  player.body.velocity.set(0,0,0);
+  player.yaw=0; player.pitch=0; groundContacts=0;
+  playerDead=false; playerDeathTimer=0;
+  if(gameMode==='online') sendNet({type:'state',x:player.body.position.x,y:player.body.position.y,z:player.body.position.z,yaw:player.yaw,pitch:player.pitch,dead:false});
+  showMsg('Ты вернулся в бой! ❄');
+}
+
+function makeRagdoll(x,z,team,baseY=0){
+  const color=team==='red'?0xe74c3c:0x3498db;
+  const mat=new THREE.MeshStandardMaterial({color,roughness:.7});
+  const skinMat=new THREE.MeshStandardMaterial({color:0xffd5b5,roughness:.7});
+
+  const g=new THREE.Group();
+  const parts=[];
+
+  const defs=[
+    [new THREE.BoxGeometry(.34,.34,.30),0,1.53,0,2.0,skinMat],
+    [new THREE.BoxGeometry(.50,.72,.30),0,1.08,0,8.0,mat],
+    [new THREE.BoxGeometry(.17,.60,.17),-.38,1.14,0,1.2,mat],
+    [new THREE.BoxGeometry(.17,.60,.17), .38,1.14,0,1.2,mat],
+    [new THREE.BoxGeometry(.19,.72,.19),-.15,.40,0,3.0,mat],
+    [new THREE.BoxGeometry(.19,.72,.19), .15,.40,0,3.0,mat]
+  ];
+
+  // Живой NPC: одно статическое составное тело.
+  // Оно используется только для столкновения с игроком.
+  const aliveBody=new CANNON.Body({
+    mass:0,
+    material:ragdollMat,
+    // Живой NPC управляется кодом, а не физикой Cannon.
+    // Полностью отключаем его физические контакты, чтобы в начале раунда
+    // NPC никогда не опрокидывались/не проваливались из-за столкновений.
+    collisionFilterGroup:0,
+    collisionFilterMask:0
+  });
+
+  for(const d of defs){
+    const [geo,px,py,pz]=d;
+    const hw=geo.parameters.width/2;
+    const hh=geo.parameters.height/2;
+    const hd=geo.parameters.depth/2;
+
+    aliveBody.addShape(
+      new CANNON.Box(new CANNON.Vec3(hw,hh*1.08,hd)),
+      new CANNON.Vec3(px,py*1.08,pz)
+    );
+
+    const mesh=new THREE.Mesh(geo,d[5]);
+    mesh.castShadow=true;
+    mesh.position.set(x+px,py,z+pz);
+    scene.add(mesh);
+
+    parts.push({
+      mesh, px,py,pz,
+      mass:d[4],
+      body:null
+    });
+  }
+
+  aliveBody.position.set(x,baseY,z);
+  world.addBody(aliveBody);
+  aliveBody.type=CANNON.Body.STATIC;
+  aliveBody.velocity.setZero();
+  aliveBody.angularVelocity.setZero();
+
+  const npc={
+    x,z,team,color,baseY,
+    state:'alive',
+    timer:0,
+    aiTimer:0,
+    throwTimer:1+Math.random()*2,
+    animTime:Math.random()*10,
+    aliveBody,
+    parts,
+    constraints:[]
+  };
+
+  aliveBody.userData={npc};
+  npcs.push(npc);
+  return npc;
+}
+
+function startRagdoll(npc,velocity,attackerTeam=null){
+  if(!npc || npc.state!=='alive') return;
+
+  npc.state='ragdoll';
+  npc.timer=0;
+
+  if(npc.aliveBody){
+    world.removeBody(npc.aliveBody);
+    npc.aliveBody=null;
+  }
+  for(const p of npc.parts) p.mesh.visible=false;
+
+  const origin=new THREE.Vector3(npc.x,npc.baseY,npc.z);
+  const rr=buildSharedRagdoll(origin,velocity,npc.team);
+  npc.ragdoll=rr;
+  npc.parts=rr.parts.map((mesh,i)=>({mesh,body:rr.bodies[i],mass:[2,8,1.2,1.2,3,3][i],px:0,py:0,pz:0}));
+  npc.constraints=rr.constraints;
+
+  if(attackerTeam){
+    if(attackerTeam==='red' && npc.team==='blue') redScore++;
+    else if(attackerTeam==='blue' && npc.team==='red') blueScore++;
+    else if(attackerTeam!==npc.team) score++;
+  }else if(npc.team==='red'){
+    score++; blueScore++;
+  }else{
+    redScore++;
+  }
+  scoreEl.textContent='❄ '+score;
+  teamEl.textContent='🔵 '+blueScore+' : '+redScore+' 🔴';
+  showMsg(attackerTeam ? (npc.team===attackerTeam?'Попали в своего! 💥':'NPC повержен! ❄') : (npc.team==='red'?'Враг повержен! ❄':'Союзник упал! 💥'));
+}
+
+// Создаём по 4 NPC каждой команды.
+for(let i=0;i<4;i++){
+  const a=(i/4)*Math.PI*2;
+  makeRagdoll(Math.cos(a)*14+3,Math.sin(a)*14+3,'red');
+  makeRagdoll(Math.cos(a)*14-3,Math.sin(a)*14-3,'blue');
+}
+
+// ============================================================
+// SNOWBALLS
+// ============================================================
+const snowballs=[];
+const impactMarks=[];
+const towers=[];
+let score=0, redScore=0, blueScore=0;
+
+// Белый след от снежка. Он остаётся на месте попадания.
+function makeImpactMark(pos, normal){
+  const geo=new THREE.CircleGeometry(.16,16);
+  const mat=new THREE.MeshBasicMaterial({
+    color:0xffffff,
+    transparent:true,
+    opacity:.9,
+    depthWrite:false
+  });
+  const mark=new THREE.Mesh(geo,mat);
+
+  const n=(normal||new THREE.Vector3(0,1,0)).clone().normalize();
+  mark.position.copy(pos).add(n.clone().multiplyScalar(.012));
+
+  // Круг по умолчанию смотрит вдоль +Z. Поворачиваем его к нормали поверхности.
+  mark.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),n);
+  scene.add(mark);
+  impactMarks.push({mesh:mark,life:12});
+}
+
+// Две башни на карте. У каждой есть Cannon-коллизия,
+// поэтому в башню нельзя пройти.
+function makeTower(x,z){
+  const g=new THREE.Group();
+
+  const stone=new THREE.MeshStandardMaterial({color:0x9aa8b5,roughness:.9});
+  const wood=new THREE.MeshStandardMaterial({color:0x6b4328,roughness:.8});
+  const roofMat=new THREE.MeshStandardMaterial({color:0xeaf7ff,roughness:.8});
+
+  // Башня стала выше: теперь внутри больше места над головой.
+  const towerHeight=6;
+  const deckY=6.0;
+
+  const base=new THREE.Mesh(new THREE.BoxGeometry(4,towerHeight,4),stone);
+  base.position.y=towerHeight/2;
+  base.castShadow=true;
+  base.receiveShadow=true;
+  g.add(base);
+
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(4.5,.35,4.5),wood);
+  deck.position.y=deckY;
+  deck.castShadow=true;
+  g.add(deck);
+
+  // Высокие стойки, чтобы потолок/крыша не давили на игрока.
+  for(const sx of [-1.7,1.7]){
+    for(const sz of [-1.7,1.7]){
+      const post=new THREE.Mesh(new THREE.BoxGeometry(.3,2.8,.3),wood);
+      post.position.set(sx,7.45,sz);
+      post.castShadow=true;
+      g.add(post);
+    }
+  }
+
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(3.2,2.1,4),roofMat);
+  roof.position.y=9.05;
+  roof.rotation.y=Math.PI/4;
+  roof.castShadow=true;
+  g.add(roof);
+
+  // Пологая лестница: 16 невысоких ступеней с небольшим подъёмом.
+  // Последняя ступень почти совпадает с уровнем верхней площадки.
+  const steps=16;
+  const stepH=.375;
+  const stepD=.44;
+  for(let i=0;i<steps;i++){
+    const h=(i+1)*stepH;
+    const step=new THREE.Mesh(new THREE.BoxGeometry(2.4,h,stepD),wood);
+    step.position.set(0,h/2,-2.25-(steps-1-i)*stepD);
+    step.castShadow=true;
+    step.receiveShadow=true;
+    g.add(step);
+  }
+
+  g.position.set(x,0,z);
+  scene.add(g);
+
+  const body=new CANNON.Body({mass:0});
+  body.addShape(
+    new CANNON.Box(new CANNON.Vec3(2,towerHeight/2,2)),
+    new CANNON.Vec3(0,towerHeight/2,0)
+  );
+  body.addShape(
+    new CANNON.Box(new CANNON.Vec3(2.25,.18,2.25)),
+    new CANNON.Vec3(0,deckY,0)
+  );
+
+  // Коллизии лестницы.
+  for(let i=0;i<steps;i++){
+    const h=(i+1)*stepH;
+    body.addShape(
+      new CANNON.Box(new CANNON.Vec3(1.2,h/2,stepD/2)),
+      new CANNON.Vec3(0,h/2,-2.25-(steps-1-i)*stepD)
+    );
+  }
+
+  // Плавная невидимая наклонная коллизия поверх ступеней.
+  // Игрок теперь не застревает на вертикальных гранях ступенек,
+  // а спокойно поднимается вверх даже без прыжка на каждую ступень.
+  const rampLen=steps*stepD;
+  const zBack=-2.25-(steps-1)*stepD-stepD/2;
+  const zFront=-2.25+stepD/2;
+  const rampVerts=[
+    new CANNON.Vec3(-1.2,0,zBack), new CANNON.Vec3(1.2,0,zBack),
+    new CANNON.Vec3(-1.2,0,zFront), new CANNON.Vec3(1.2,0,zFront),
+    new CANNON.Vec3(-1.2,steps*stepH,zFront), new CANNON.Vec3(1.2,steps*stepH,zFront)
+  ];
+  const rampFaces=[
+    [0,1,3,2], [2,3,5,4], [0,2,4], [1,5,3], [0,4,5,1]
+  ];
+  body.addShape(new CANNON.ConvexPolyhedron(rampVerts,rampFaces));
+
+  body.position.set(x,0,z);
+  world.addBody(body);
+  staticWorldBodies.push(body);
+
+  towers.push({g,body,x,z});
+
+  // NPC стоит на верхней площадке.
+  makeRagdoll(x-0.65,z+0.35,teamForTower(towers.length),deckY-.07);
+}
+
+function teamForTower(index){
+  return index%2===1?'red':'blue';
+}
+
+makeTower(-18,-8);
+makeTower(18,8);
+
+// Если снежок врезался в пол, башню или другую неподвижную поверхность,
+// он исчезает и оставляет белый след.
+world.addEventListener('beginContact',e=>{
+  const a=e.bodyA,b=e.bodyB;
+  let sb=null, other=null;
+
+  for(const s of snowballs){
+    if(s.body===a){ sb=s; other=b; break; }
+    if(s.body===b){ sb=s; other=a; break; }
+  }
+  if(!sb || sb.life<=0) return;
+  // Снежки NPC проверяются вручную в игровом цикле: не даём Cannon
+  // удалить их раньше времени при контакте с игроком.
+  if(sb.ownerNpc) return;
+
+  // Не обрабатываем попадание в NPC здесь — оно надёжно обрабатывается
+  // вручную в игровом цикле.
+  let npcBody=false;
+  for(const n of npcs){
+    if(n.aliveBody===other){ npcBody=true; break; }
+  }
+  if(npcBody) return;
+
+  const pos=sb.body.position.clone();
+  const v=sb.body.velocity.clone();
+  let normal=new CANNON.Vec3(0,1,0);
+
+  // Для пола нормаль вверх. Для остальных объектов берём направление
+  // от поверхности к снежку — достаточно для визуального следа.
+  if(Math.abs(v.x)+Math.abs(v.z)>0.001){
+    normal.set(-v.x,-Math.max(Math.abs(v.y),.2),-v.z);
+    normal.normalize();
+  }
+
+  makeImpactMark(
+    new THREE.Vector3(pos.x,pos.y,pos.z),
+    new THREE.Vector3(normal.x,normal.y,normal.z)
+  );
+
+  // Скрываем сразу в момент попадания, чтобы не было видимого отскока.
+  sb.life=0;
+  sb.mesh.visible=false;
+});
+
+function spawnNPCSnowball(npc,target){
+  if(!npc || npc.state!=='alive' || !target) return;
+  const sx=npc.x, sy=npc.baseY+1.15, sz=npc.z;
+  const tx=target.x, ty=(target.y||0)+.55, tz=target.z;
+  const dir=new THREE.Vector3(tx-sx,ty-sy,tz-sz);
+  if(dir.lengthSq()<.01) return;
+  dir.normalize();
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(.14,10,10),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.4}));
+  mesh.castShadow=true; mesh.position.set(sx,sy,sz); scene.add(mesh);
+  const body=new CANNON.Body({mass:.4,shape:new CANNON.Sphere(.14),material:snowballMat,position:new CANNON.Vec3(sx,sy,sz)});
+  const power=20; body.velocity.set(dir.x*power,dir.y*power+2,dir.z*power);
+  world.addBody(body); snowballs.push({mesh,body,life:4,ownerNpc:npc,lastPos:new CANNON.Vec3(sx,sy,sz)});
+}
+
+function updateNormalNPC(n,dt){
+  if(!n || n.state!=='alive') return;
+  n.aiTimer=(n.aiTimer||0)-dt; n.throwTimer=(n.throwTimer||0)-dt;
+  // В режиме «Все против одного» у ботов ЕДИНСТВЕННАЯ цель — игрок.
+  // Они никогда не выбирают друг друга, даже если один бот оказался ближе.
+  let targets=[];
+  if(specialMode==='oneVsAll'){
+    if(!playerDead) targets=[{x:player.body.position.x,y:player.body.position.y,z:player.body.position.z,isPlayer:true}];
+  }else{
+    // В командной битве бот выбирает только врагов своей команды + игрока,
+    // если игрок на противоположной команде.
+    if(!playerDead && n.team!==playerTeam){
+      targets.push({x:player.body.position.x,y:player.body.position.y,z:player.body.position.z,isPlayer:true});
+    }
+    for(const other of npcs){
+      if(other!==n && other.state==='alive' && other.team!==n.team){
+        targets.push({x:other.x,y:other.baseY+1,z:other.z,npc:other});
+      }
+    }
+  }
+  let target=null,best=Infinity;
+  for(const t of targets){ const dx=t.x-n.x,dz=t.z-n.z,d=dx*dx+dz*dz; if(d<best){best=d;target=t;} }
+  if(!target) return;
+
+  // Движение: NPC постоянно перемещаются к ближайшему участнику, но не липнут вплотную.
+  const dist=Math.sqrt(best);
+  if(dist>7 || Math.random()<.45){
+    const dx=(target.x-n.x)/(dist||1), dz=(target.z-n.z)/(dist||1);
+    const speed=1.8;
+    n.x += dx*speed*dt; n.z += dz*speed*dt;
+  }else if(dist<3){
+    const dx=(n.x-target.x)/(dist||1), dz=(n.z-target.z)/(dist||1);
+    n.x += dx*1.2*dt; n.z += dz*1.2*dt;
+  }
+  n.x=Math.max(-34,Math.min(34,n.x)); n.z=Math.max(-34,Math.min(34,n.z));
+  if(n.aliveBody) n.aliveBody.position.set(n.x,n.baseY,n.z);
+
+  if(n.throwTimer<=0){
+    spawnNPCSnowball(n,target);
+    n.throwTimer=1.1+Math.random()*.8;
+  }
+}
+
+function throwSnowball(){
+  if(player.cooldown>0||player.crafting>0) return;
+  if(player.balls<=0){ showMsg('Нет снежков! Подойди к куче 🧊'); return; }
+  player.cooldown=.45; player.balls--; updateBalls(); throwAnim=.28;
+  const dir=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch,player.yaw,0,'YXZ'));
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(.14,10,10), new THREE.MeshStandardMaterial({color:0xffffff, roughness:.4}));
+  mesh.castShadow=true;
+  const startPos=camera.position.clone().add(dir.clone().multiplyScalar(.6)); startPos.y-=.15;
+  mesh.position.copy(startPos); scene.add(mesh);
+  const body=new CANNON.Body({mass:.4, shape:new CANNON.Sphere(.14), material:snowballMat, position:new CANNON.Vec3(startPos.x,startPos.y,startPos.z)});
+  const power=22;
+  body.velocity.set(dir.x*power, dir.y*power+2, dir.z*power);
+  world.addBody(body);
+  snowballs.push({mesh,body,life:4,ownerNetId:myNetId,lastPos:new CANNON.Vec3(startPos.x,startPos.y,startPos.z)});
+  sendNet({type:'throw',x:startPos.x,y:startPos.y,z:startPos.z,vx:body.velocity.x,vy:body.velocity.y,vz:body.velocity.z});
+  updateHand();
+}
+
+// NPC hit detection is done explicitly in animate() below.
+// This avoids missed contacts when a fast snowball crosses an NPC between physics steps.
+
+// ============================================================
+// TRAJECTORY
+// ============================================================
+const trajGeo=new THREE.BufferGeometry();
+const trajLine=new THREE.Line(trajGeo, new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.6}));
+scene.add(trajLine);
+const trajDots=[];
+for(let i=0;i<20;i++){
+  const d=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6), new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.7}));
+  d.visible=false; scene.add(d); trajDots.push(d);
+}
+function updateTrajectory(){
+  if(player.balls<=0||player.crafting>0){ trajLine.visible=false; trajDots.forEach(d=>d.visible=false); return; }
+  const dir=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch,player.yaw,0,'YXZ'));
+  const pos=camera.position.clone().add(dir.clone().multiplyScalar(.6)); pos.y-=.15;
+  const vel=dir.clone().multiplyScalar(22); vel.y+=2;
+  const points=[]; const p=pos.clone(), v=vel.clone(); const dt=.06;
+  for(let i=0;i<20;i++){ v.y-=20*dt; p.add(v.clone().multiplyScalar(dt)); points.push(p.clone()); if(p.y<0) break; }
+  trajGeo.setFromPoints(points); trajLine.visible=true;
+  trajDots.forEach((d,i)=>{ if(i<points.length){ d.position.copy(points[i]); d.visible=true; } else d.visible=false; });
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+const joy=document.getElementById('joy'), stick=document.getElementById('stick');
+let joyVec={x:0,y:0}, joyId=null;
+joy.addEventListener('touchstart', e=>{ joyId=e.changedTouches[0].identifier; }, {passive:false});
+joy.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    if(t.identifier!==joyId) continue;
+    const r=joy.getBoundingClientRect();
+    let dx=(t.clientX-r.left-60)/50, dy=(t.clientY-r.top-60)/50;
+    const len=Math.hypot(dx,dy); if(len>1){dx/=len;dy/=len;}
+    joyVec={x:dx,y:dy};
+    stick.style.left=35+dx*35+'px'; stick.style.top=35+dy*35+'px';
+  }
+},{passive:false});
+joy.addEventListener('touchend', e=>{
+  for(const t of e.changedTouches) if(t.identifier===joyId){ joyId=null; joyVec={x:0,y:0}; stick.style.left='35px'; stick.style.top='35px'; }
+});
+
+let lookId=null, lastLX=0, lastLY=0;
+canvas.addEventListener('touchstart', e=>{
+  for(const t of e.changedTouches){ if(t.clientX>innerWidth*.35){ lookId=t.identifier; lastLX=t.clientX; lastLY=t.clientY; } }
+},{passive:true});
+canvas.addEventListener('touchmove', e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier!==lookId) continue;
+    player.yaw-=(t.clientX-lastLX)*.005;
+    player.pitch-=(t.clientY-lastLY)*.005;
+    player.pitch=Math.max(-1.2, Math.min(1.2, player.pitch));
+    lastLX=t.clientX; lastLY=t.clientY;
+  }
+},{passive:true});
+canvas.addEventListener('touchend', e=>{ for(const t of e.changedTouches) if(t.identifier===lookId) lookId=null; });
+
+function bindBtn(el,fn){
+  if(!el) return;
+  const down=e=>{e.preventDefault();e.stopPropagation();fn(true,e);};
+  const up=e=>{e.preventDefault();e.stopPropagation();fn(false,e);};
+  el.addEventListener('pointerdown',down,{passive:false});
+  el.addEventListener('pointerup',up,{passive:false});
+  el.addEventListener('pointercancel',up,{passive:false});
+  el.addEventListener('pointerleave',up,{passive:false});
+  el.addEventListener('touchstart',down,{passive:false});
+  el.addEventListener('touchend',up,{passive:false});
+}
+document.getElementById('throwBtn').addEventListener('touchstart', e=>{ e.preventDefault(); throwSnowball(); }, {passive:false});
+document.getElementById('throwBtn').addEventListener('mousedown', throwSnowball);
+document.getElementById('craftBtn').addEventListener('touchstart', e=>{ e.preventDefault(); tryCraft(); }, {passive:false});
+document.getElementById('craftBtn').addEventListener('mousedown', tryCraft);
+document.getElementById('jumpBtn').addEventListener('touchstart', e=>{ e.preventDefault(); jumpPlayer(); }, {passive:false});
+document.getElementById('jumpBtn').addEventListener('mousedown', jumpPlayer);
+document.getElementById('exitBtn').addEventListener('touchstart', e=>{ e.preventDefault(); togglePause(); }, {passive:false});
+document.getElementById('exitBtn').addEventListener('click', togglePause);
+document.getElementById('pauseContinue').addEventListener('click', ()=>setPause(false));
+document.getElementById('pauseSettings').addEventListener('click', ()=>{ setPause(false); showScreen('settings'); });
+document.getElementById('pauseExit').addEventListener('click', ()=>{ setPause(false); exitToMenu(); });
+addEventListener('keydown', e=>{ if(e.key==='Escape' && !e.repeat){ e.preventDefault(); togglePause(); } });
+
+function tryCraft(){
+  if(player.crafting>0) return;
+  let near=null;
+  for(const [id,rr] of remoteRagdolls){
+    rr.timer+=dt;
+    if(rr.timer>=5){
+      const p=remotePlayers.get(id);
+      if(p && !p.dead) removeRemoteRagdoll(id);
+    }
+  }
+
+  for(const p of piles){
+    if(!p.active) continue;
+    const dx=p.x-player.body.position.x, dz=p.z-player.body.position.z;
+    if(dx*dx+dz*dz<4){ near=p; break; }
+  }
+  if(!near){ showMsg('Подойди ближе к куче снега!'); return; }
+  if(player.balls>=player.maxBalls){ showMsg('Максимум снежков!'); return; }
+  player.crafting=player.craftTime;
+  craftEl.style.opacity=1;
+}
+
+const keys={};
+addEventListener('keydown', e=>{ keys[e.key.toLowerCase()]=true; if(e.code==='Space'){ e.preventDefault(); jumpPlayer(); } });
+addEventListener('keyup', e=>keys[e.key]=false);
+
+// ============================================================
+// JUMP
+// ============================================================
+let groundContacts=0;
+world.addEventListener('beginContact',e=>{
+  if(e.bodyA!==player.body && e.bodyB!==player.body) return;
+  const other=e.bodyA===player.body?e.bodyB:e.bodyA;
+  if(staticWorldBodies.indexOf(other)!==-1) groundContacts++;
+});
+world.addEventListener('endContact',e=>{
+  if(e.bodyA!==player.body && e.bodyB!==player.body) return;
+  const other=e.bodyA===player.body?e.bodyB:e.bodyA;
+  if(staticWorldBodies.indexOf(other)!==-1) groundContacts=Math.max(0,groundContacts-1);
+});
+function jumpPlayer(){
+  // Контакты Cannon могут обновиться только после шага физики, поэтому
+  // на земле разрешаем прыжок и по высоте игрока как запасной вариант.
+  const onGround = groundContacts>0 || player.body.position.y<=0.62;
+  if(!onGround) return;
+  player.body.velocity.y=player.jumpSpeed;
+  groundContacts=0;
+}
+
+// ============================================================
+// UI / MENU NAVIGATION
+// ============================================================
+const scoreEl=document.getElementById('score');
+const ballsEl=document.getElementById('balls');
+const teamEl=document.getElementById('teamScore');
+const msgEl=document.getElementById('msg');
+const craftEl=document.getElementById('craft');
+
+function updateBalls(){ ballsEl.textContent='Снежки: '+player.balls; }
+function updateHand(){ handBall.visible=player.balls>0; }
+let msgT=null;
+function showMsg(t){ msgEl.textContent=t; msgEl.style.opacity=1; clearTimeout(msgT); msgT=setTimeout(()=>msgEl.style.opacity=0,1200); }
+function addChat(text,system=false){
+  const log=document.getElementById('chatLog'); if(!log) return;
+  const e=document.createElement('div'); e.className='chat-line'+(system?' chat-system':''); e.textContent=text;
+  log.appendChild(e); while(log.children.length>10) log.removeChild(log.firstChild);
+}
+function addKillFeed(killer,victim,headshot=false){
+  const box=document.getElementById('killFeed'); if(!box) return;
+  const e=document.createElement('div'); e.className='kill-line'+(headshot?' kill-head':'');
+  e.textContent=killer+'  ❄  '+victim+(headshot?'  •  🎯 ГОЛОВА':'');
+  box.appendChild(e);
+  while(box.children.length>5) box.removeChild(box.firstChild);
+  setTimeout(()=>{ if(e.parentNode) e.remove(); },6500);
+}
+function updateTabBoard(){
+  const box=document.getElementById('tabPlayers'); if(!box) return;
+  const list=[];
+  if(gameMode==='online'){
+    list.push({id:myNetId,nick:profileNick||'Игрок',dead:playerDead});
+    for(const [id,p] of remotePlayers) if(id!==myNetId) list.push({id,nick:p.nick||'Игрок',dead:!!p.dead});
+  }
+  box.innerHTML='';
+  list.forEach(p=>{ const e=document.createElement('div'); e.className='tab-player'+(p.id===myNetId?' me':''); e.innerHTML='<span>'+escapeHtml(p.nick)+'</span><span>'+(p.dead?'💀':'❄️')+'</span>'; box.appendChild(e); });
+}
+function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function setTab(open){
+  tabOpen=!!open; const b=document.getElementById('tabBoard'); if(!b) return;
+  if(tabOpen && gameMode==='online'){ updateTabBoard(); b.classList.remove('hidden'); } else b.classList.add('hidden');
+}
+function npcLabel(n){ return (n && n.team==='red'?'Красный':'Синий')+' бот'; }
+function updateOnlineUI(){
+  const chat=document.getElementById('chatBox'); if(chat) chat.classList.toggle('hidden',gameMode!=='online');
+  const diff=document.getElementById('difficultyWrap'); if(diff && gameMode==='online') diff.style.display=isRoomHost?'block':'none';
+  if(gameMode!=='online') setTab(false);
+  if(tabOpen) updateTabBoard();
+}
+
+const gameSettings=Object.assign({sensitivity:5,invertY:false,crosshair:true,chat:true,killFeed:true,uiScale:1,quality:1},(()=>{try{return JSON.parse(localStorage.getItem('snowwars_settings')||'{}')}catch(e){return {}}})());
+function saveSettings(){try{localStorage.setItem('snowwars_settings',JSON.stringify(gameSettings))}catch(e){}}
+function applySettings(){
+  const sens=document.getElementById('sensRange'), sv=document.getElementById('sensValue');
+  if(sens){sens.value=gameSettings.sensitivity;sv.textContent=(gameSettings.sensitivity*10)+'%';}
+  const setBtn=(id,on)=>{const e=document.getElementById(id);if(e)e.textContent=on?'ВКЛ':'ВЫКЛ'};
+  setBtn('invertYBtn',gameSettings.invertY); setBtn('crosshairBtn',gameSettings.crosshair); setBtn('chatBtn',gameSettings.chat); setBtn('killFeedBtn',gameSettings.killFeed);
+  const us=document.getElementById('uiScaleSelect'), qs=document.getElementById('qualitySelect'); if(us)us.value=String(gameSettings.uiScale); if(qs)qs.value=String(gameSettings.quality);
+  const hud=document.getElementById('hud'); if(hud)hud.style.setProperty('--ui-scale',gameSettings.uiScale);
+  const cross=document.getElementById('crosshair'); if(cross)cross.style.display=gameSettings.crosshair?'block':'none';
+  const chat=document.getElementById('chatBox'); if(chat&&!gameSettings.chat)chat.classList.add('hidden');
+  const feed=document.getElementById('killFeed'); if(feed&&!gameSettings.killFeed)feed.style.display='none';
+  if(typeof renderer!=='undefined') renderer.setPixelRatio(Math.min(devicePixelRatio*gameSettings.quality,2));
+}
+function initSettings(){
+  const sens=document.getElementById('sensRange'); if(sens)sens.addEventListener('input',()=>{gameSettings.sensitivity=+sens.value;saveSettings();applySettings()});
+  [['invertYBtn','invertY'],['crosshairBtn','crosshair'],['chatBtn','chat'],['killFeedBtn','killFeed']].forEach(([id,key])=>{const e=document.getElementById(id);if(e)e.addEventListener('click',()=>{gameSettings[key]=!gameSettings[key];saveSettings();applySettings()})});
+  const us=document.getElementById('uiScaleSelect'); if(us)us.addEventListener('change',()=>{gameSettings.uiScale=+us.value;saveSettings();applySettings()});
+  const qs=document.getElementById('qualitySelect'); if(qs)qs.addEventListener('change',()=>{gameSettings.quality=+qs.value;saveSettings();applySettings()});
+  const reset=document.getElementById('resetSettings'); if(reset)reset.addEventListener('click',()=>{Object.assign(gameSettings,{sensitivity:5,invertY:false,crosshair:true,chat:true,killFeed:true,uiScale:1,quality:1});saveSettings();applySettings();showMsg('Настройки сброшены');});
+  applySettings();
+}
+
+const screens={ main:document.getElementById('mainMenu'), settings:document.getElementById('settingsScreen'), profile:document.getElementById('profileScreen'), mode:document.getElementById('modeScreen'), offlineMode:document.getElementById('offlineModeScreen'), online:document.getElementById('onlineScreen'), team:document.getElementById('teamScreen'), map:document.getElementById('mapScreen') };
+let gameMode='offline';
+let pendingMap='snow';
+let npcDifficulty='harmless';
+let specialMode='normal'; // normal | oneVsAll
+let roundNumber=0, roundTransitionTimer=0, roundTransitioning=false;
+let playerTeam='blue';
+const SPAWNS={red:{x:-27,z:0},blue:{x:27,z:0}};
+let socket=null, roomCode='', myNetId='', remotePlayers=new Map(), remoteModels=new Map(), remoteRagdolls=new Map(), netTimer=0, isRoomHost=false, tabOpen=false;
+function updateRoomBadge(){ const e=document.getElementById('roomBadge'); const p=document.getElementById('pauseRoomCode'); const online=gameMode==='online' && !!roomCode; if(e){ e.style.display='none'; e.textContent=''; } if(p) p.textContent=online?'КОД КОМНАТЫ: '+roomCode:'ОФЛАЙН-ИГРА'; }
+let pauseOpen=false;
+function setPause(open){
+  pauseOpen=!!open;
+  const p=document.getElementById('pauseMenu');
+  if(p) p.classList.toggle('hidden',!pauseOpen);
+  updateRoomBadge();
+}
+function togglePause(){
+  if(document.getElementById('hud').classList.contains('hidden')) return;
+  setPause(!pauseOpen);
+}
+
+function getServerURL(){
+  const raw=(document.getElementById('serverIpInput')?.value||'').trim();
+  if(raw){
+    const clean=raw.replace(/^wss?:\/\//i,'').replace(/\/$/,'');
+    return 'ws://'+(clean.includes(':')?clean:clean+':8080');
+  }
+  return location.protocol==='file:'?'ws://localhost:8080':((location.protocol==='https:'?'wss://':'ws://')+location.host);
+}
+function showScreen(name){
+  Object.values(screens).forEach(s=>s.classList.add('hidden'));
+  if(name) screens[name].classList.remove('hidden');
+}
+
+function menuButton(id,screenName){
+  const el=document.getElementById(id);
+  if(!el) return;
+  let locked=false;
+  const activate=e=>{
+    if(e){e.preventDefault();e.stopPropagation();}
+    if(locked) return;
+    locked=true;
+    showScreen(screenName);
+    setTimeout(()=>locked=false,120);
+  };
+  el.addEventListener('click',activate,{passive:false});
+  el.addEventListener('touchend',activate,{passive:false});
+  el.addEventListener('pointerup',activate,{passive:false});
+}
+menuButton('btnPlay','mode');
+menuButton('btnSettings','settings');
+menuButton('btnProfile','profile');
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click', ()=>{ if(gameMode!=='offline' && !document.getElementById('hud').classList.contains('hidden')) showScreen(null); else showScreen('main'); }));
+initSettings();
+
+// Profile
+let avatar='😎';
+let profileNick=localStorage.getItem('snowwars_nick')||'';
+document.getElementById('nickInput').value=profileNick;
+document.querySelectorAll('.avatar-opt').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.avatar-opt').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    avatar=b.dataset.a;
+    document.getElementById('avatarBig').textContent=avatar;
+  });
+});
+document.getElementById('saveProfile').addEventListener('click', ()=>{
+  const nick=document.getElementById('nickInput').value.trim();
+  if(!nick){ showMsg('Напиши ник! 👤'); return; }
+  profileNick=nick;
+  localStorage.setItem('snowwars_nick',profileNick);
+  showMsg('Сохранено: '+avatar+' '+profileNick);
+  setTimeout(()=>showScreen('main'), 800);
+});
+
+// Mode select
+document.getElementById('modeOnline').addEventListener('click', ()=>{
+  if(!profileNick.trim()){
+    document.getElementById('nickRequiredOverlay').classList.remove('hidden');
+    return;
+  }
+  showScreen('online');
+});
+document.getElementById('nickRequiredProfile').addEventListener('click', ()=>{
+  document.getElementById('nickRequiredOverlay').classList.add('hidden');
+  showScreen('profile');
+  setTimeout(()=>document.getElementById('nickInput').focus(),50);
+});
+document.getElementById('modeOffline').addEventListener('click', ()=>{ gameMode='offline'; showScreen('offlineMode'); });
+document.getElementById('offlineNormal').addEventListener('click', ()=>{
+  gameMode='offline'; specialMode='normal';
+  document.getElementById('difficultyWrap').style.display='block';
+  showScreen('map');
+});
+document.getElementById('offlineOneVsAll').addEventListener('click', ()=>{
+  gameMode='offline'; specialMode='oneVsAll'; npcDifficulty='normal';
+  document.getElementById('difficultyWrap').style.display='none';
+  showScreen('map');
+});
+document.querySelectorAll('.team-card').forEach(card=>card.addEventListener('click',()=>{
+  playerTeam=card.dataset.team;
+  document.querySelectorAll('.team-card').forEach(x=>x.classList.remove('sel'));
+  card.classList.add('sel');
+}));
+document.getElementById('teamContinue').addEventListener('click',()=>startGame(pendingMap));
+// После выбора карты сначала показываем выбор команды прямо перед стартом матча.
+
+
+document.getElementById('createRoom').addEventListener('click', ()=>connectOnline(true));
+document.getElementById('joinRoom').addEventListener('click', ()=>connectOnline(false));
+function netStatus(t){ const e=document.getElementById('onlineStatus'); if(e)e.textContent=t; }
+function connectOnline(create){
+  gameMode='online';
+  const serverUrl=getServerURL();
+  netStatus('Подключение к '+serverUrl+' ...');
+  try{ socket=new WebSocket(serverUrl); }catch(err){ netStatus('Не удалось создать подключение'); return; }
+  socket.onopen=()=>{
+    const nick=profileNick.trim();
+    const code=document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    socket.send(JSON.stringify({type:create?'create_room':'join_room',room:create?undefined:code,nick}));
+  };
+  socket.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.type==='room_created'||m.type==='room_joined'){
+      const receivedRoom=String(m.roomCode ?? m.room ?? m.code ?? '').trim().toUpperCase();
+      const receivedId=String(m.id ?? m.playerId ?? '').trim();
+      const receivedHost = m.isHost ?? m.host ?? (m.hostId && receivedId && String(m.hostId)===receivedId);
+      roomCode=receivedRoom;
+      myNetId=receivedId;
+      isRoomHost=receivedHost===true || receivedHost===1 || receivedHost==='true';
+      updateRoomBadge(); updateOnlineUI();
+      if(roomCode){
+        netStatus('Комната '+roomCode+' • игроков: '+(m.players ?? '—'));
+        showScreen('map');
+        addChat('🏠 Код комнаты: '+roomCode,true);
+        addChat('Ты подключился к комнате '+roomCode+' • '+(isRoomHost?'ты хост':'ты игрок'),true);
+      } else {
+        netStatus('Сервер не прислал код комнаты');
+        addChat('⚠️ Сервер не прислал код комнаты',true);
+      }
+    }
+    else if(m.type==='error'){netStatus(m.message||'Ошибка');}
+    else if(m.type==='player_joined'){ remotePlayers.set(m.id,{x:m.x,y:m.y,z:m.z,yaw:m.yaw,nick:m.nick,dead:false}); addChat('👤 '+(m.nick||'Игрок')+' подключился к игре',true); updateTabBoard(); }
+    else if(m.type==='player_left'){
+      const left=remotePlayers.get(m.id); addChat('🚪 '+(left?.nick||m.nick||'Игрок')+' вышел из игры',true);
+      remotePlayers.delete(m.id);
+      const rm=remoteModels.get(m.id); if(rm){scene.remove(rm.model);remoteModels.delete(m.id);}
+      removeRemoteRagdoll(m.id); updateTabBoard();
+    }
+    else if(m.type==='host_changed'){ isRoomHost=m.id===myNetId; updateOnlineUI(); addChat((isRoomHost?'👑 Ты теперь хост':'👑 Хост сменился'),true); }
+    else if(m.type==='chat'){ addChat((m.nick||'Игрок')+': '+String(m.text||'')); }
+    else if(m.type==='state'){ for(const pl of m.players){ if(pl.id!==myNetId) remotePlayers.set(pl.id,pl); } updateTabBoard(); }
+    else if(m.type==='player_hit'){
+      const killer=(m.by===myNetId?profileNick:(remotePlayers.get(m.by)?.nick||'Игрок'));
+      const victim=(m.target===myNetId?profileNick:(remotePlayers.get(m.target)?.nick||'Игрок'));
+      addKillFeed(killer,victim,!!m.headshot);
+      if(m.target===myNetId){
+        killPlayer(new CANNON.Vec3(Number(m.vx)||0,Number(m.vy)||3.5,Number(m.vz)||0));
+      }else{
+        const p=remotePlayers.get(m.target);
+        if(p){
+          p.dead=true;
+          startRemoteRagdoll(m.target, new CANNON.Vec3(Number(m.vx)||0,Number(m.vy)||3.5,Number(m.vz)||0));
+        }
+      }
+      updateTabBoard();
+    }
+    else if(m.type==='snowball'){ spawnRemoteSnowball(m); }
+  };
+  socket.onclose=()=>{if(gameMode==='online') netStatus('Соединение закрыто');};
+  socket.onerror=()=>netStatus('Сервер недоступен. Запусти server.js');
+}
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); const text=e.target.value.trim(); if(text && gameMode==='online'){ sendNet({type:'chat',text}); e.target.value=''; } }
+});
+addEventListener('keydown',e=>{
+  if(e.key==='Tab' && gameMode==='online'){ e.preventDefault(); setTab(true); }
+});
+addEventListener('keyup',e=>{ if(e.key==='Tab') setTab(false); });
+function sendNet(o){if(socket&&socket.readyState===1)socket.send(JSON.stringify(o));}
+function updateRemotePlayers(dt){
+  for(const [id,p] of remotePlayers){
+    const rr=remoteRagdolls.get(id);
+    if(rr){
+      for(let i=0;i<rr.bodies.length;i++){
+        rr.parts[i].position.copy(rr.bodies[i].position);
+        rr.parts[i].quaternion.copy(rr.bodies[i].quaternion);
+      }
+      continue;
+    }
+    let rm=remoteModels.get(id);
+    if(!rm){ rm={model:createAvatar(),anim:0,lastX:p.x,lastZ:p.z}; rm.model.visible=true; scene.add(rm.model); remoteModels.set(id,rm); }
+    if(p.dead){ rm.model.visible=false; continue; }
+    rm.model.visible=true;
+    const dx=p.x-rm.lastX,dz=p.z-rm.lastZ; const moving=Math.hypot(dx,dz)>.002;
+    rm.anim += dt*(moving?10:2); rm.lastX=p.x; rm.lastZ=p.z;
+    rm.model.position.set(p.x,p.y-.45,p.z); rm.model.rotation.y=p.yaw||0;
+    updateAvatarAnimation(rm.model,moving,rm.anim,0);
+  }
+}
+
+function createRemoteRagdoll(id,velocity){
+  const p=remotePlayers.get(id);
+  if(!p || remoteRagdolls.has(id)) return;
+  const origin=new THREE.Vector3(p.x,p.y-.05,p.z);
+  const rr=buildSharedRagdoll(origin,velocity,p.team||'blue');
+  const rm=remoteModels.get(id); if(rm){ scene.remove(rm.model); remoteModels.delete(id); }
+  remoteRagdolls.set(id,rr);
+}
+
+function startRemoteRagdoll(id,velocity){
+  const p=remotePlayers.get(id); if(!p || remoteRagdolls.has(id)) return;
+  p.dead=true;
+  createRemoteRagdoll(id,velocity);
+}
+
+function removeRemoteRagdoll(id){
+  const rr=remoteRagdolls.get(id); if(!rr) return;
+  for(const c of rr.constraints) world.removeConstraint(c);
+  for(const b of rr.bodies) world.removeBody(b);
+  scene.remove(rr.root); remoteRagdolls.delete(id);
+}
+
+function respawnRemote(id){
+  removeRemoteRagdoll(id);
+  const p=remotePlayers.get(id); if(p) p.dead=false;
+}
+
+function spawnRemoteSnowball(m){
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(.14,10,10),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.4}));
+  mesh.position.set(m.x,m.y,m.z);scene.add(mesh);
+  const body=new CANNON.Body({mass:.4,shape:new CANNON.Sphere(.14),material:snowballMat,position:new CANNON.Vec3(m.x,m.y,m.z)});
+  body.velocity.set(m.vx,m.vy,m.vz);world.addBody(body);snowballs.push({mesh,body,life:4,ownerNetId:m.owner,lastPos:new CANNON.Vec3(m.x,m.y,m.z)});
+}
+
+document.getElementById('difficultyToggle').addEventListener('click', ()=>{
+  document.getElementById('difficultyOptions').classList.toggle('open');
+});
+document.querySelectorAll('.difficulty-opt').forEach(opt=>opt.addEventListener('click', ()=>{
+  npcDifficulty=opt.dataset.diff;
+  document.getElementById('difficultyName').textContent= npcDifficulty==='normal' ? 'Обычная' : 'Безобидный';
+  document.querySelectorAll('.difficulty-opt').forEach(x=>x.classList.remove('sel'));
+  opt.classList.add('sel');
+  document.getElementById('difficultyOptions').classList.remove('open');
+}));
+
+document.getElementById('mapSnow').addEventListener('click', ()=>{ if(gameMode==='online') sendNet({type:'map',map:'snow'}); document.getElementById('difficultyOptions').classList.remove('open'); pendingMap='snow'; if(specialMode==='oneVsAll') startGame(pendingMap); else showScreen('team'); });
+document.getElementById('mapFort').addEventListener('click', ()=>{ if(gameMode==='online') sendNet({type:'map',map:'fort'}); document.getElementById('difficultyOptions').classList.remove('open'); pendingMap='fort'; if(specialMode==='oneVsAll') startGame(pendingMap); else showScreen('team'); });
+
+function hideNPC(n){
+  if(n.aliveBody){ world.removeBody(n.aliveBody); n.aliveBody=null; }
+  for(const p of n.parts){
+    if(p.body){ world.removeBody(p.body); p.body=null; }
+    p.mesh.visible=false;
+  }
+  for(const c of n.constraints||[]){ world.removeConstraint(c); }
+  n.constraints=[];
+  if(n.ragdoll?.root){ scene.remove(n.ragdoll.root); n.ragdoll=null; }
+  n.state='inactive'; n.specialActive=false;
+}
+
+function setupOneVsAllRound(first=false){
+  roundTransitioning=false;
+  roundTransitionTimer=0;
+  if(first) roundNumber=1; else roundNumber++;
+
+  // Полностью очищаем старых NPC, чтобы в начале нового раунда
+  // случайно не использовались уже упавшие части ragdoll.
+  for(const n of npcs.slice()) hideNPC(n);
+  npcs.length=0;
+
+  // В режиме «Все против одного» всегда создаём ровно 5 новых,
+  // гарантированно живых ботов. Они не начинают раунд в ragdoll.
+  const spawnPoints=[
+    [-10,-8],[-3,-10],[5,-8],[-9,7],[7,8]
+  ];
+  for(let i=0;i<5;i++){
+    const [x,z]=spawnPoints[i];
+    const n=makeRagdoll(x,z,'red',0);
+    n.specialActive=true;
+    n.state='alive';
+    // Небольшая пауза после старта: боты не начинают движение/бросок в первый кадр.
+    n.aiTimer=0.9;
+    n.throwTimer=1.8+Math.random()*1.2;
+    n.animTime=Math.random()*10;
+
+    // makeRagdoll уже создаёт статическое живое тело.
+    // На старте принудительно сбрасываем всё к ровной стойке.
+    if(n.aliveBody){
+      n.aliveBody.type=CANNON.Body.STATIC;
+      n.aliveBody.position.set(x,0,z);
+      n.aliveBody.velocity.setZero();
+      n.aliveBody.angularVelocity.setZero();
+    }
+    for(const p of n.parts){
+      p.body=null;
+      p.mesh.visible=true;
+      p.mesh.position.set(x+p.px,p.py*1.08,z+p.pz);
+      p.mesh.rotation.set(0,0,0);
+      p.mesh.quaternion.set(0,0,0,1);
+    }
+  }
+
+  showMsg('Раунд '+roundNumber+' / 6 — все против одного! ⚔️');
+}
+function finishOneVsAllRound(){
+  if(roundTransitioning) return;
+  roundTransitioning=true; roundTransitionTimer=5;
+  showMsg(roundNumber<6 ? 'Раунд завершён! Следующий через 5 сек ⏱️' : 'Победа! Ты прошёл все 6 раундов! 🏆');
+}
+
+function advanceOneVsAllRound(){
+  if(roundNumber>=6){
+    roundTransitioning=false;
+    showMsg('Победа! 6 / 6 раундов пройдено 🏆');
+    return;
+  }
+  removePlayerRagdoll();
+  playerDead=false; playerDeathTimer=0;
+  player.body.type=CANNON.Body.DYNAMIC; player.body.collisionResponse=true;
+  const ps=SPAWNS.blue;
+  player.body.position.set(ps.x,.5,ps.z); player.body.velocity.set(0,0,0); groundContacts=0;
+  setupOneVsAllRound(false);
+}
+
+function startGame(mapName='snow'){
+  setPause(false);
+  window.selectedMap=mapName;
+  updateOnlineUI();
+  updateRoomBadge();
+  showScreen(null);
+  document.getElementById('hud').classList.remove('hidden');
+
+  // Reset match counters so the HUD always shows the current game.
+  score=0; redScore=0; blueScore=0;
+  scoreEl.textContent='❄ 0';
+  teamEl.textContent=specialMode==='oneVsAll' ? '⚔️ ВСЕ ПРОТИВ ОДНОГО' : '🔵 0 : 0 🔴';
+
+  updateBalls(); updateHand();
+  removePlayerRagdoll();
+  playerDead=false; playerDeathTimer=0;
+  player.body.type=CANNON.Body.DYNAMIC; player.body.collisionResponse=true;
+  const ps=SPAWNS[playerTeam]||SPAWNS.blue;
+  player.body.position.set(ps.x,.5,ps.z); player.body.velocity.set(0,0,0); groundContacts=0;
+  playerAvatar.visible=false;
+
+  if(specialMode==='oneVsAll'){
+    setupOneVsAllRound(true);
+    return;
+  }
+
+  // Два постоянных командных спавна: красные слева, синие справа.
+  // Все NPC тоже получают стартовую точку своей команды, поэтому игрок для AI
+  // выглядит как обычный участник матча и может быть полноценной целью.
+  const redSpawns=[[-24,-6],[-24,0],[-24,6],[-19,-3],[-19,3]];
+  const blueSpawns=[[24,-6],[24,0],[24,6],[19,-3],[19,3]];
+  let ri=0,bi=0;
+  for(const n of npcs){
+    if(n.state==='ragdoll') continue;
+    const arr=n.team==='red'?redSpawns:blueSpawns;
+    const pos=arr[(n.team==='red'?ri++:bi++)%arr.length];
+    n.x=pos[0]; n.z=pos[1]; n.baseY=0; n.state='alive'; n.timer=0; n.throwTimer=1+Math.random()*2;
+    if(n.aliveBody) n.aliveBody.position.set(n.x,0,n.z);
+    for(const part of n.parts){ part.mesh.visible=true; part.mesh.position.set(n.x+part.px,part.py*1.08,n.z+part.pz); part.mesh.rotation.set(0,0,0); }
+  }
+  showMsg(gameMode==='online'?'Онлайн-битва началась! 🌐':'Битва началась! ❄');
+}
+
+function exitToMenu(){
+  setPause(false);
+  setTab(false);
+  const chat=document.getElementById('chatBox'); if(chat) chat.classList.add('hidden');
+  roomCode=''; isRoomHost=false; updateRoomBadge();
+  document.getElementById('hud').classList.add('hidden');
+  playerAvatar.visible=false;
+  showScreen('main');
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(), .05);
+  player.cooldown-=dt;
+
+  if(player.crafting>0){
+    player.crafting-=dt;
+    const progress=1-player.crafting/player.craftTime;
+    fist.scale.set(1+Math.sin(progress*Math.PI)*.3, .8, 1.1);
+    handBall.scale.setScalar(.5+progress*.5);
+    craftEl.textContent='Леплю снежок... '+Math.round(progress*100)+'%';
+    if(player.crafting<=0){
+      player.balls++; updateBalls(); updateHand();
+      craftEl.style.opacity=0;
+      fist.scale.set(1,.8,1.1); handBall.scale.setScalar(1);
+      showMsg('+1 снежок! ❄');
+    }
+  }
+
+  let mx=playerDead?0:joyVec.x, mz=playerDead?0:joyVec.y;
+  if(!playerDead){ if(keys['w']) mz-=1; if(keys['s']) mz+=1; if(keys['a']) mx-=1; if(keys['d']) mx+=1; }
+  const sin=Math.sin(player.yaw), cos=Math.cos(player.yaw);
+  // Local X = right, local Z = forward/backward.
+  // At yaw=0, forward is -Z and backward is +Z.
+  const wx=(mx*cos+mz*sin), wz=(-mx*sin+mz*cos);
+  if(!playerDead){
+    player.body.velocity.x=wx*player.speed;
+    player.body.velocity.z=wz*player.speed;
+    if(keys['f']) throwSnowball();
+    if(keys['e']) tryCraft();
+  }else{
+    player.body.velocity.x=0; player.body.velocity.z=0;
+    playerDeathTimer-=dt;
+  }
+
+  if(specialMode==='oneVsAll' && roundTransitioning){
+    roundTransitionTimer-=dt;
+    if(roundTransitionTimer<=0) advanceOneVsAllRound();
+  }
+
+  world.step(1/60, dt, 3);
+  if(gameMode==='online'){ netTimer-=dt; if(netTimer<=0){ netTimer=.05; sendNet({type:'state',x:player.body.position.x,y:player.body.position.y,z:player.body.position.z,yaw:player.yaw,pitch:player.pitch,dead:playerDead}); } }
+
+  const moving=Math.abs(wx)+Math.abs(wz)>.1;
+  const moveSpeed=Math.hypot(player.body.velocity.x,player.body.velocity.z);
+  const animSpeed=8+Math.min(moveSpeed,6)*1.8;
+  if(moving) playerAnimTime+=dt*animSpeed;
+  else playerAnimTime+=dt*2;
+  throwAnim=Math.max(0,throwAnim-dt);
+
+  // Только первое лицо. Аватар и его анимации остаются скрытыми для будущих remote-player моделей.
+  playerAvatar.visible=false;
+  if(playerDead && playerRagdoll){
+    for(let i=0;i<playerRagdoll.bodies.length;i++){
+      playerRagdoll.parts[i].position.copy(playerRagdoll.bodies[i].position);
+      playerRagdoll.parts[i].quaternion.copy(playerRagdoll.bodies[i].quaternion);
+    }
+    const t=playerRagdoll.torso.position;
+    camera.position.set(t.x+.0,t.y+.35,t.z+.9);
+    camera.lookAt(t.x,t.y+.35,t.z);
+    if(playerDeathTimer<=0 && specialMode!=='oneVsAll' && !roundTransitioning) respawnPlayer();
+  }else{
+    camera.position.set(player.body.position.x, player.body.position.y+.7, player.body.position.z);
+    camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+  }
+  const bobT=clock.elapsedTime*(moving?10:2);
+  handGroup.position.y=Math.sin(bobT)*.015;
+  handGroup.position.x=Math.cos(bobT*.5)*.01;
+  const throwPhase=throwAnim>0 ? 1-throwAnim/.28 : 0;
+  const throwSwing=throwAnim>0 ? Math.sin(throwPhase*Math.PI) : 0;
+  handGroup.rotation.x=-throwSwing*.9;
+  handGroup.position.z=-throwSwing*.16;
+  updateAvatarAnimation(playerAvatar,moving,playerAnimTime,throwPhase);
+
+  updateTrajectory();
+  updateRemotePlayers(dt);
+
+  for(let i=npcs.length-1;i>=0;i--){
+    const n=npcs[i];
+
+    if(n.state==='alive'){
+      // Всегда держим живого NPC собранным.
+      for(const p of n.parts){
+        p.mesh.position.set(n.x+p.px, n.baseY+p.py*1.08, n.z+p.pz);
+        p.mesh.quaternion.set(0,0,0,1);
+      }
+      const npcMoving=gameMode==='offline' && npcDifficulty==='normal' && n.aiTimer!==undefined && n.aiTimer<=0;
+      if(npcMoving){
+        n.animTime += dt*8;
+        const walk=Math.sin(n.animTime)*.42;
+        n.parts[4].mesh.rotation.x=walk;
+        n.parts[5].mesh.rotation.x=-walk;
+        n.parts[2].mesh.rotation.x=-walk*.7;
+        n.parts[3].mesh.rotation.x=walk*.7;
+        // Без вертикального bob: при старте раунда NPC не подпрыгивают.
+        n.parts[0].mesh.position.y=n.baseY+n.parts[0].py*1.08;
+        n.parts[1].mesh.position.y=n.baseY+n.parts[1].py*1.08;
+      }
+
+      // Дополнительная надёжность столкновения игрока с NPC.
+      if(n.aliveBody){
+        n.aliveBody.position.set(n.x,n.baseY,n.z);
+        n.aliveBody.velocity.setZero();
+        n.aliveBody.angularVelocity.setZero();
+      }
+
+      if(gameMode==='offline' && npcDifficulty==='normal') {
+        updateNormalNPC(n,dt);
+        // Живые NPC всегда стоят ровно на базовой высоте.
+        for(const p of n.parts){
+          p.mesh.position.set(n.x+p.px,n.baseY+p.py*1.08,n.z+p.pz);
+          p.mesh.quaternion.set(0,0,0,1);
+        }
+      }
+
+      // НАДЁЖНОЕ попадание снежком.
+      // Проверяем расстояние вручную, поэтому попадание не зависит
+      // от Cannon.js beginContact и не пропускается на телефоне.
+      for(const sb of snowballs){
+        if(sb.life<=0) continue;
+
+        const dx=sb.body.position.x-n.x;
+        const dy=sb.body.position.y-(n.baseY+1.05);
+        const dz=sb.body.position.z-n.z;
+
+        if(dx*dx+dy*dy+dz*dz < 1.35*1.35){
+          const hitVelocity=sb.body.velocity.clone();
+          const hitPos=sb.body.position.clone();
+          startRagdoll(n,hitVelocity);
+
+          // Белый след остаётся на месте попадания.
+          const normal=hitVelocity.length()>0
+            ? hitVelocity.clone().scale(-1).unit()
+            : new CANNON.Vec3(0,1,0);
+          makeImpactMark(
+            new THREE.Vector3(hitPos.x,hitPos.y,hitPos.z),
+            new THREE.Vector3(normal.x,normal.y,normal.z)
+          );
+
+          sb.life=0;
+          sb.mesh.visible=false;
+          if(specialMode==='oneVsAll' && npcs.filter(x=>x.specialActive && x.state==='alive').length===0){
+            finishOneVsAllRound();
+          }
+          break;
+        }
+      }
+    }
+
+    if(n.state==='ragdoll'){
+      for(const p of n.parts){
+        if(p.body){
+          p.mesh.position.copy(p.body.position);
+          p.mesh.quaternion.copy(p.body.quaternion);
+        }
+      }
+
+      n.timer+=dt;
+
+      if(n.timer>=5){
+        if(specialMode==='oneVsAll' && n.specialActive){
+          // В режиме «все против одного» ragdoll остаётся до конца раунда.
+          // После 5 секунд просто полностью останавливаем его.
+          for(const p of n.parts){ if(p.body){ p.body.velocity.setZero(); p.body.angularVelocity.setZero(); p.body.type=CANNON.Body.STATIC; } }
+          continue;
+        }
+        // Удаляем физику и корневой объект ragdoll.
+        for(const c of n.constraints) world.removeConstraint(c);
+        n.constraints.length=0;
+
+        for(const p of n.parts){
+          if(p.body){
+            world.removeBody(p.body);
+            p.body=null;
+          }
+          scene.remove(p.mesh);
+        }
+        if(n.ragdoll?.root){ scene.remove(n.ragdoll.root); n.ragdoll=null; }
+
+        npcs.splice(i,1);
+
+        // Новый NPC снова появляется полностью собранным.
+        const a=Math.random()*Math.PI*2;
+        const r=12+Math.random()*10;
+        makeRagdoll(
+          Math.cos(a)*r,
+          Math.sin(a)*r,
+          n.team,
+          0
+        );
+      }
+    }
+  }
+
+  for(const p of piles){
+    if(!p.active){ p.respawn-=dt; if(p.respawn<=0){ p.active=true; p.m.visible=true; } }
+  }
+
+  for(let i=snowballs.length-1;i>=0;i--){
+    const s=snowballs[i];
+    s.life-=dt;
+    const prevPos=s.lastPos ? s.lastPos.clone() : s.body.position.clone();
+    s.mesh.position.copy(s.body.position);
+    s.mesh.quaternion.copy(s.body.quaternion);
+
+    // Обычные NPC тоже могут попадать снежками по игроку и другим NPC.
+    if(s.life>0 && s.ownerNpc && !playerDead){
+      // Проверяем не только текущую точку, но и весь отрезок за кадр —
+      // быстрый NPC-снежок больше не пролетит сквозь игрока.
+      const a=prevPos;
+      const b=s.body.position;
+      const px=player.body.position.x, py=player.body.position.y+.15, pz=player.body.position.z;
+      const abx=b.x-a.x, aby=b.y-a.y, abz=b.z-a.z;
+      const ab2=abx*abx+aby*aby+abz*abz;
+      let t=ab2>0 ? ((px-a.x)*abx+(py-a.y)*aby+(pz-a.z)*abz)/ab2 : 0;
+      t=Math.max(0,Math.min(1,t));
+      const qx=a.x+abx*t, qy=a.y+aby*t, qz=a.z+abz*t;
+      const dx=qx-px, dy=qy-py, dz=qz-pz;
+      if(dx*dx+dy*dy+dz*dz<1.05*1.05){
+        const v=s.body.velocity.clone();
+        makeImpactMark(new THREE.Vector3(qx,qy,qz),new THREE.Vector3(-v.x,-Math.max(Math.abs(v.y),.2),-v.z).unit());
+        if(gameMode==='offline') addKillFeed(npcLabel(s.ownerNpc),profileNick,qy >= player.body.position.y+1.28);
+        s.life=0; s.mesh.visible=false;
+        killPlayer();
+      }
+    }
+    if(s.life>0 && s.ownerNpc){
+      for(const n of npcs){
+        if(n===s.ownerNpc || n.state!=='alive') continue;
+        // В «Все против одного» снежки ботов не могут поражать других ботов:
+        // весь урон направлен только на игрока.
+        if(specialMode==='oneVsAll') continue;
+        // В командной битве нельзя поражать союзников.
+        if(n.team===s.ownerNpc.team) continue;
+        const dx=s.body.position.x-n.x;
+        const dy=s.body.position.y-(n.baseY+1.05);
+        const dz=s.body.position.z-n.z;
+        if(dx*dx+dy*dy+dz*dz<1.05*1.05){
+          const v=s.body.velocity.clone(), hitPos=s.body.position.clone();
+          startRagdoll(n,v,s.ownerNpc.team);
+          if(gameMode==='offline') addKillFeed(profileNick,n.team==='red'?'Красный бот':'Синий бот',hitPos.y >= n.baseY+1.35);
+          makeImpactMark(new THREE.Vector3(hitPos.x,hitPos.y,hitPos.z),new THREE.Vector3(-v.x,-Math.max(Math.abs(v.y),.2),-v.z).unit());
+          s.life=0; s.mesh.visible=false; break;
+        }
+      }
+    }
+
+    // Онлайн: снежок игрока может поразить другого игрока.
+    // Проверяет только автор снежка, чтобы один удар не засчитывался дважды.
+    if(s.life>0 && gameMode==='online' && s.ownerNetId===myNetId){
+      for(const [id,p] of remotePlayers){
+        if(id===myNetId || p.dead || remoteRagdolls.has(id)) continue;
+        const dx=s.body.position.x-p.x;
+        const dy=s.body.position.y-(p.y+.95);
+        const dz=s.body.position.z-p.z;
+        if(dx*dx+dy*dy+dz*dz<1.15*1.15){
+          const v=s.body.velocity.clone();
+          const hitPos=s.body.position.clone();
+          const headshot=hitPos.y >= p.y+1.28;
+          sendNet({type:'hit',target:id,x:hitPos.x,y:hitPos.y,z:hitPos.z,vx:v.x,vy:Math.max(3.5,v.y),vz:v.z,headshot});
+          s.life=0; s.mesh.visible=false;
+          break;
+        }
+      }
+    }
+
+    // Онлайн: любой чужой снежок может поразить локального игрока.
+    // Используем отрезок от прошлой позиции до текущей, чтобы быстрый снежок
+    // не пролетал сквозь игрока между кадрами.
+    if(s.life>0 && gameMode==='online' && s.ownerNetId && s.ownerNetId!==myNetId && !playerDead){
+      const a=prevPos, b=s.body.position;
+      const px=player.body.position.x, py=player.body.position.y+.15, pz=player.body.position.z;
+      const abx=b.x-a.x, aby=b.y-a.y, abz=b.z-a.z;
+      const ab2=abx*abx+aby*aby+abz*abz;
+      let t=ab2>0 ? ((px-a.x)*abx+(py-a.y)*aby+(pz-a.z)*abz)/ab2 : 0;
+      t=Math.max(0,Math.min(1,t));
+      const qx=a.x+abx*t, qy=a.y+aby*t, qz=a.z+abz*t;
+      const dx=qx-px, dy=qy-py, dz=qz-pz;
+      if(dx*dx+dy*dy+dz*dz<1.05*1.05){
+        const v=s.body.velocity.clone();
+        makeImpactMark(new THREE.Vector3(qx,qy,qz),new THREE.Vector3(-v.x,-Math.max(Math.abs(v.y),.2),-v.z).unit());
+        s.life=0; s.mesh.visible=false;
+        killPlayer();
+      }
+    }
+
+    // Запасная проверка: если физический контакт Cannon не успел сработать,
+    // снежок всё равно исчезнет при касании земли.
+    if(s.life>0 && s.body.position.y<=.16){
+      makeImpactMark(
+        new THREE.Vector3(s.body.position.x,.03,s.body.position.z),
+        new THREE.Vector3(0,1,0)
+      );
+      s.life=0;
+      s.mesh.visible=false;
+    }
+
+    if(s.life>0) s.lastPos.copy(s.body.position);
+
+    if(s.life<=0){
+      world.removeBody(s.body);
+      scene.remove(s.mesh);
+      snowballs.splice(i,1);
+    }
+  }
+
+  // Следы постепенно исчезают, но достаточно долго остаются заметными.
+  for(let i=impactMarks.length-1;i>=0;i--){
+    const mark=impactMarks[i];
+    mark.life-=dt;
+    if(mark.life<=0){
+      scene.remove(mark.mesh);
+      impactMarks.splice(i,1);
+    }else if(mark.life<2){
+      mark.mesh.material.opacity=.9*(mark.life/2);
+    }
+  }
+
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize', ()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
