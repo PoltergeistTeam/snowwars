@@ -8,7 +8,7 @@
   "short_name": "SnowWars",
   "start_url": "/",
   "theme_color": "#0a1628",
-  "description": "3D игра,"
+  "description": "3D игра.",
   "icons": [
   {
     "src": "launchericon-192x192.png",
